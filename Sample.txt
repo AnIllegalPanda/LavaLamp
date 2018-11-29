@@ -1,1 +1,10 @@
 //Sample File
+TODO:
+  set bounding box for lamp
+    boundary collisions
+
+  gravity effect
+  heat effect
+    motion based on these 2 combined
+
+
