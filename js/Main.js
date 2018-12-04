@@ -1,6 +1,6 @@
 // globals
 var scene, camera, renderer;
-var aLight, light;
+var aLight, brLight, trLight;
 //var pRight, pLeft, pTop, bBottom, pFront, pBack;
 var spheres;
 var boxSideLen = 3.0;
@@ -21,17 +21,29 @@ function checkCollision(cur) {
       cur.vz *= -1;
 }
 
+function computeColor(cur, fh) {
+  var minimum = -2;
+  var maximum = 2;
+  var value = fh * 400000;
+  var ratio = 2 * (value-minimum) / (maximum - minimum);
+  var b = Math.max(0, 255*(1 - ratio)) / 255;
+  var r = Math.max(0, 255*(ratio - 1)) / 255;
+  var g = (255 - b - r) / 255;
+  cur.sph.material.color.setRGB(r, g, b);
+}
+
 // apply forces only in y direction
 function applyForces(cur) {
-  var Fg = -0.00001;
+  var Fg = -0.0000005;
   // cur.y < 0 -> apply positive force
   // cur.y > 0 -> apply negative force
   // cur.y == 0 -> apply 0 force
-  var FhScalar = 20000;
+  var FhScalar = 400000;
   var Fh = ((-cur.y)**3) * cur.size / FhScalar;
 
   cur.vy += Fg;
   cur.vy += Fh;
+  return Fh;
 }
 
 var animate = function () {
@@ -46,7 +58,8 @@ var animate = function () {
     cur.z += cur.vz;
 
     checkCollision(cur);
-    applyForces(cur);
+    var Fh = applyForces(cur);
+    computeColor(cur, Fh);
   }
   renderer.render(scene, camera);
 };
@@ -57,12 +70,18 @@ window.onload = function init() {
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.z = 6;
 
-  aLight = new THREE.AmbientLight( 0x404040 ); // soft white light
+  aLight = new THREE.AmbientLight( 0x1f1f1f );
   scene.add( aLight );
 
-  light = new THREE.PointLight( 0xff0000, 3, 15 );
-  light.position.set( 0, -5, 0 );
-  scene.add( light );
+  brLight = new THREE.RectAreaLight( 0xf0f0f0, 2 );
+  brLight.position.set( 0, -5, 0 );
+  brLight.lookAt(0, 0, 0);
+  scene.add( brLight );
+
+  trLight = new THREE.RectAreaLight( 0xf0f0f0, 2, 4, 4 );
+  trLight.position.set( 0, 5, 0 );
+  trLight.lookAt(0, 0, 0);
+  scene.add( trLight );
 
   renderer = new THREE.WebGLRenderer();
 
@@ -74,17 +93,20 @@ window.onload = function init() {
 
   spheres = [];
 
-  for (var i = 0; i < 10; ++i) {
-    var x = Math.random() * 2 - 1;
-    var y = (Math.random() / 4) - 1;
-    var z = Math.random() * 2 - 1;
-    var vx = Math.random() / 100 - 0.005;
-    var vy = Math.random() / 50 - 0.01;
-    var vz = Math.random() / 100 - 0.005;
-    var size = Math.random();
+  for (var i = 0; i < 20; ++i) {
+    var x = Math.random() * boxSideLen*2 - boxSideLen;
+    var y = -boxSideLen + (Math.random() / 4);
+    var z = Math.random() * boxSideLen*2 - boxSideLen;
+    var vx = Math.random() / 200 - 0.005;
+    var vy = Math.random() / 100 - 0.01;
+    var vz = Math.random() / 200 - 0.0025;
+    var size = Math.random() + 0.25;
+
+    if( y - size <= boxSideLen )
+      y = -boxSideLen + size + 0.1;
 
     var geometry = new THREE.SphereGeometry(size, 32, 32);
-    var material = new THREE.MeshPhongMaterial({ color: 0xf0f0f0 });
+    var material = new THREE.MeshStandardMaterial({ color: 0xf0f0f0 });
     var sphere = new THREE.Mesh(geometry, material);
 
     spheres.push({
@@ -96,6 +118,7 @@ window.onload = function init() {
       vz: vz,
       size: size,
       geo: geometry,
+      sph: sphere
     });
 
     scene.add(sphere);
