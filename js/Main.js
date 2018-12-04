@@ -3,28 +3,31 @@ var scene, camera, renderer;
 var aLight, brLight, trLight;
 //var pRight, pLeft, pTop, bBottom, pFront, pBack;
 var spheres;
-var boxSideLen = 3.0;
+var hBoxHeight = 3.0;
+var hBoxWidth = 1.0;
+var hBoxDepth = 0.4;
+var sign = 1;
 
 // bounding box collision check
 function checkCollision(cur) {
 
-  if( cur.x + cur.size > boxSideLen ||
-      cur.x - cur.size < -boxSideLen )
+  if( cur.x + cur.size > hBoxWidth ||
+      cur.x - cur.size < -hBoxWidth )
       cur.vx *= -1;
 
-  if( cur.y + cur.size > boxSideLen ||
-      cur.y - cur.size < -boxSideLen )
+  if( cur.y + cur.size > hBoxHeight||
+      cur.y - cur.size < -hBoxHeight )
       cur.vy = 0;
 
-  if( cur.z + cur.size > boxSideLen ||
-      cur.z - cur.size < -boxSideLen )
+  if( cur.z + cur.size > hBoxDepth ||
+      cur.z - cur.size < hBoxDepth )
       cur.vz *= -1;
 }
 
 function computeColor(cur, fh) {
-  var minimum = -2;
-  var maximum = 2;
-  var value = fh * 400000;
+  var minimum = -1;
+  var maximum = 1;
+  var value = fh * 400000; // scale force back up
   var ratio = 2 * (value-minimum) / (maximum - minimum);
   var b = Math.max(0, 255*(1 - ratio)) / 255;
   var r = Math.max(0, 255*(ratio - 1)) / 255;
@@ -38,11 +41,16 @@ function applyForces(cur) {
   // cur.y < 0 -> apply positive force
   // cur.y > 0 -> apply negative force
   // cur.y == 0 -> apply 0 force
-  var FhScalar = 400000;
-  var Fh = ((-cur.y)**3) * cur.size / FhScalar;
+  var FhScalar = 800000;
+  var Fh = ((-cur.y)**3) / ((cur.size*2) * FhScalar);
+
+  var Fcx = ((-cur.x)**3) / FhScalar;
+  var Fcz = ((-cur.z)**3) / FhScalar;
 
   cur.vy += Fg;
   cur.vy += Fh;
+  cur.vx += Fcx;
+  cur.vz += Fcz;
   return Fh;
 }
 
@@ -59,7 +67,13 @@ var animate = function () {
 
     checkCollision(cur);
     var Fh = applyForces(cur);
-    computeColor(cur, Fh);
+    //computeColor(cur, Fh);
+    /*
+    cur.sph.morphTargetInfluences[ 1 ] = cur.sph.morphTargetInfluences[ 1 ] + 0.01 * sign;
+      if ( cur.sph.morphTargetInfluences[ 1 ] <= 0 || cur.sph.morphTargetInfluences[ 1 ] >= 1 ) {
+        sign *= - 1;
+      }
+      */
   }
   renderer.render(scene, camera);
 };
@@ -70,21 +84,23 @@ window.onload = function init() {
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.z = 6;
 
-  aLight = new THREE.AmbientLight( 0x1f1f1f );
+  aLight = new THREE.AmbientLight( 0x1f1f1f, 5 );
   scene.add( aLight );
 
-  brLight = new THREE.RectAreaLight( 0xf0f0f0, 2 );
-  brLight.position.set( 0, -5, 0 );
-  brLight.lookAt(0, 0, 0);
+  brLight = new THREE.PointLight( 0xf0f0f0, 1 );
+  brLight.position.set( 0, 0, 5 );
+  brLight.castShadow = true;
+  //brLight.lookAt(0, 0, 0);
   scene.add( brLight );
 
-  trLight = new THREE.RectAreaLight( 0xf0f0f0, 2, 4, 4 );
-  trLight.position.set( 0, 5, 0 );
-  trLight.lookAt(0, 0, 0);
+  trLight = new THREE.PointLight( 0xf0f0f0, 1);
+  trLight.position.set( 0, 20, 0 );
+  trLight.castShadow = true;
+  //trLight.lookAt(0, 0, 0);
   scene.add( trLight );
 
-  var boxEdgeGeo = new THREE.BoxGeometry(5, 6, 0);
-  var boxEdgeMaterial = new THREE.MeshBasicMaterial( {color: 0xD2B48C} );
+  var boxEdgeGeo = new THREE.BoxGeometry(hBoxWidth*2, hBoxHeight*2, hBoxDepth*2);
+  var boxEdgeMaterial = new THREE.MeshBasicMaterial( {color: 0xD2B48C, wireframe: true} );
   var boxEdge = new THREE.Mesh( boxEdgeGeo, boxEdgeMaterial );
   scene.add( boxEdge );
 
@@ -93,34 +109,73 @@ window.onload = function init() {
   scene.add(axesHelper);
   */
 
+  /*
   var boxGeo = new THREE.BoxGeometry(4.9, 5.9, 0);
   var boxMaterial = new THREE.MeshBasicMaterial( {color: 0x000000} );
   var box = new THREE.Mesh( boxGeo , boxMaterial );
   scene.add( box );
+  */
 
   renderer = new THREE.WebGLRenderer();
 
 
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio( window.devicePixelRatio );
   document.body.appendChild(renderer.domElement);
 
   spheres = [];
 
   for (var i = 0; i < 20; ++i) {
-    var x = Math.random() * boxSideLen*2 - boxSideLen;
-    var y = -boxSideLen + (Math.random() / 4);
-    var z = Math.random() * boxSideLen*2 - boxSideLen;
-    var vx = Math.random() / 200 - 0.005;
-    var vy = Math.random() / 100 - 0.01;
+    var x = Math.random() * hBoxWidth*2 - hBoxWidth;
+    var y = -hBoxHeight + (Math.random() / 4);
+    var z = Math.random() * hBoxDepth*2 - hBoxDepth;
+    //var z = 0.5;
+    var vx = Math.random() / 200 - 0.0025;
+    //var vy = Math.random() / 100 - 0.01;
+    var vy = 0;
     var vz = Math.random() / 200 - 0.0025;
-    var size = Math.random() + 0.25;
+    //var vz = 0;
+    var size = (Math.random() * 0.2) + 0.4;
 
-    if( y - size <= boxSideLen )
-      y = -boxSideLen + size + 0.1;
+    if( y - size <= -hBoxHeight )
+      y = -hBoxHeight + size + 0.1;
 
     var geometry = new THREE.SphereGeometry(size, 32, 32);
-    var material = new THREE.MeshStandardMaterial({ color: 0xf0f0f0 });
+    var material = new THREE.MeshPhongMaterial({morphTargets: true, color: 0xff7d05});
     var sphere = new THREE.Mesh(geometry, material);
+
+    geometry.morphTargets[0] = {name: 't1', vertices: geometry.vertices};
+
+    var pointsMaterial = new THREE.PointsMaterial( {
+
+      size: 2,
+      sizeAttenuation: false,
+      alphaTest: 0.5,
+      morphTargets: true
+
+    } );
+
+    var points = new THREE.Points( sphere.geometry, pointsMaterial );
+
+    points.morphTargetInfluences = sphere.morphTargetInfluences;
+    points.morphTargetDictionary = sphere.morphTargetDictionary;
+
+    //sphere.add( points );
+
+    /*
+    var pointsMaterial = new THREE.PointsMaterial({
+      size: 2,
+      sizeAttenuation: false,
+      alphaTest: 0.5,
+      morphTargets: true
+    });
+    var points = new THREE.Points( sphere.geometry, pointsMaterial );
+
+    points.morphTargetInfluences = sphere.morphTargetInfluences;
+    points.morphTargetDictionary = sphere.morphTargetDictionary;
+
+    sphere.add( points );
+    */
 
     spheres.push({
       x: x,
