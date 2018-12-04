@@ -20,11 +20,11 @@ scene.add(axesHelper);
 for (var i = 0; i < 10; ++i) {
   var x = Math.random() * 2 - 1;
   var y = (Math.random() / 4) - 1;
-  var z = Math.random() * 2 - 1;
+  var z = 0.1;
   var vx = Math.random() / 200 - 0.0025;
   var vy = Math.random() / 100 - 0.005;
-  var vz = Math.random() / 200 - 0.0025;
-  var size = Math.random();
+  var vz = 0;
+  var size = 1;
 
   var geometry = new THREE.SphereGeometry(size, 16, 16);
   var material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
@@ -45,10 +45,21 @@ for (var i = 0; i < 10; ++i) {
     geo: geometry
   });
 
+
   scene.add(sphere);
   sphere.position.set(x, y, z);
 
 }
+
+  var boxEdgeGeo = new THREE.BoxGeometry(5, 6, 0);
+  var boxEdgeMaterial = new THREE.MeshBasicMaterial( {color: 0xD2B48C} );
+  var boxEdge = new THREE.Mesh( boxEdgeGeo, boxEdgeMaterial );
+  scene.add( boxEdge );
+  
+  var boxGeo = new THREE.BoxGeometry(4.9, 5.9, 0);
+  var boxMaterial = new THREE.MeshBasicMaterial( {color: 0x000000} );
+  var box = new THREE.Mesh( boxGeo , boxMaterial );
+  scene.add( box );
 
 camera.position.z = 5;
 
@@ -56,7 +67,22 @@ var animate = function () {
   requestAnimationFrame(animate);
   for (var i = 0; i < spheres.length; ++i) {
     var cur = spheres[i];
-    cur.geo.translate(cur.vx, cur.vy, cur.vz);
+	cur.x += cur.vx;
+	cur.y += cur.vy;
+	cur.z += 0;
+    cur.geo.translate(cur.vx, cur.vy, 0);
+	if(cur.x + cur.size > 2.5){
+		cur.vx = -cur.vx;
+	}
+	if(cur.x - cur.size < -2.5){
+		cur.vx = -cur.vx;
+	}	
+	if(cur.y + cur.size > 3){
+		cur.vy = -cur.vy;
+	}	
+	if(cur.y - cur.size < -3){
+		cur.vy = -cur.vy;
+	}
 
     //if( cur.geo.intersectsBox(boundingBox) )
   }
