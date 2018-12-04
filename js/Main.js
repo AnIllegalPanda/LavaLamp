@@ -83,10 +83,23 @@ window.onload = function init() {
   trLight.lookAt(0, 0, 0);
   scene.add( trLight );
 
+  var boxEdgeGeo = new THREE.BoxGeometry(5, 6, 0);
+  var boxEdgeMaterial = new THREE.MeshBasicMaterial( {color: 0xD2B48C} );
+  var boxEdge = new THREE.Mesh( boxEdgeGeo, boxEdgeMaterial );
+  scene.add( boxEdge );
+
+  /*
+  var axesHelper = new THREE.AxesHelper(3);
+  scene.add(axesHelper);
+  */
+
+  var boxGeo = new THREE.BoxGeometry(4.9, 5.9, 0);
+  var boxMaterial = new THREE.MeshBasicMaterial( {color: 0x000000} );
+  var box = new THREE.Mesh( boxGeo , boxMaterial );
+  scene.add( box );
+
   renderer = new THREE.WebGLRenderer();
 
-  var axesHelper = new THREE.AxesHelper(2);
-  //scene.add(axesHelper);
 
   renderer.setSize(window.innerWidth, window.innerHeight);
   document.body.appendChild(renderer.domElement);
