@@ -51,7 +51,31 @@ function applyForces(cur) {
   cur.vy += Fh;
   cur.vx += Fcx;
   cur.vz += Fcz;
-  return Fh;
+}
+
+function computeMorphTargets(geometry) {
+  for( var i = 0; i < geometry.vertices.length; ++i ) {
+    var vertices = [];
+
+    for( var j = 0; j < geometry.vertices.length; ++j ) {
+      var v = geometry.vertices[j].clone();
+      v.x *= 1.1;
+      v.y *= 1.1; 
+      v.z *= 1.1;
+      vertices.push(v);
+
+      /*
+      if( j === i ) {
+        vertices[ vertices.length -  1].x *= 2;
+        vertices[ vertices.length -  1].y *= 2;
+        vertices[ vertices.length -  1].z *= 2;
+      }
+      */
+    }
+
+    geometry.morphTargets.push({ name: "target"+i, vertices: vertices});
+  }
+
 }
 
 var animate = function () {
@@ -66,14 +90,19 @@ var animate = function () {
     cur.z += cur.vz;
 
     checkCollision(cur);
-    var Fh = applyForces(cur);
+    applyForces(cur);
     //computeColor(cur, Fh);
+
+    //cur.sph.rotation.y += 0.01;
+
     /*
-    cur.sph.morphTargetInfluences[ 1 ] = cur.sph.morphTargetInfluences[ 1 ] + 0.01 * sign;
-      if ( cur.sph.morphTargetInfluences[ 1 ] <= 0 || cur.sph.morphTargetInfluences[ 1 ] >= 1 ) {
+    for( var j = 0; j < cur.sph.morphTargetInfluences.length; ++j ) {
+      cur.sph.morphTargetInfluences[ j ] = cur.sph.morphTargetInfluences[ j ] + 0.001 * sign;
+      if ( cur.sph.morphTargetInfluences[ j ] <= 0 || cur.sph.morphTargetInfluences[ j ] >= 0.05 ) {
         sign *= - 1;
       }
-      */
+    }
+    */
   }
   renderer.render(scene, camera);
 };
@@ -125,7 +154,7 @@ window.onload = function init() {
 
   spheres = [];
 
-  for (var i = 0; i < 20; ++i) {
+  for (var i = 0; i < 10; ++i) {
     var x = Math.random() * hBoxWidth*2 - hBoxWidth;
     var y = -hBoxHeight + (Math.random() / 4);
     var z = Math.random() * hBoxDepth*2 - hBoxDepth;
@@ -140,11 +169,13 @@ window.onload = function init() {
     if( y - size <= -hBoxHeight )
       y = -hBoxHeight + size + 0.1;
 
-    var geometry = new THREE.SphereGeometry(size, 32, 32);
-    var material = new THREE.MeshPhongMaterial({morphTargets: true, color: 0xff7d05});
+    var geometry = new THREE.SphereGeometry(size, 16, 16);
+    //computeMorphTargets(geometry);
+
+    var material = new THREE.MeshLambertMaterial({morphTargets: true, color: 0xff7d05});
     var sphere = new THREE.Mesh(geometry, material);
 
-    geometry.morphTargets[0] = {name: 't1', vertices: geometry.vertices};
+    //sphere.morphTargetInfluences[1] = 0;
 
     var pointsMaterial = new THREE.PointsMaterial( {
 
@@ -161,21 +192,6 @@ window.onload = function init() {
     points.morphTargetDictionary = sphere.morphTargetDictionary;
 
     //sphere.add( points );
-
-    /*
-    var pointsMaterial = new THREE.PointsMaterial({
-      size: 2,
-      sizeAttenuation: false,
-      alphaTest: 0.5,
-      morphTargets: true
-    });
-    var points = new THREE.Points( sphere.geometry, pointsMaterial );
-
-    points.morphTargetInfluences = sphere.morphTargetInfluences;
-    points.morphTargetDictionary = sphere.morphTargetDictionary;
-
-    sphere.add( points );
-    */
 
     spheres.push({
       x: x,
