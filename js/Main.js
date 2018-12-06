@@ -215,6 +215,23 @@ window.onload = function init() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio( window.devicePixelRatio );
   document.body.appendChild(renderer.domElement);
+  
+    //Make the lamp a box
+var geometry = new THREE.CylinderGeometry( 1.75, 1.75, 6, 8 );
+var material = new THREE.MeshBasicMaterial( {color: 0xff0000, transparent: true, opacity: 0.5} );
+var cylinder = new THREE.Mesh( geometry, material );
+scene.add( cylinder );
+var Topgeometry = new THREE.CylinderGeometry( 2, 2, 1, 8 );
+var Topmaterial = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+var Topcylinder = new THREE.Mesh( Topgeometry, Topmaterial );
+scene.add( Topcylinder );
+Topcylinder.position.set (0, 3, 0);
+var Botgeometry = new THREE.CylinderGeometry( 2, 2, 1, 8 );
+var Botmaterial = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
+var Botcylinder = new THREE.Mesh( Botgeometry, Botmaterial );
+scene.add( Botcylinder );
+Botcylinder.position.set (0, -3, 0);
+
 
   spheres = [];
   addLava();
