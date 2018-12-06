@@ -193,7 +193,6 @@ window.onload = function init() {
     this.home = function() {
       controls.reset();
     };
-    this.axes = false;
     this.lavaColor = color;
     this.heatStrength = 1.0;
     this.numLava = numLava;
@@ -263,13 +262,9 @@ window.onload = function init() {
 
     color = controller.lavaColor;
   });
-  gui.add( controller, 'axes' ).onChange( function() {
-    if( controller.axes ) scene.add(axesHelper);
-    else scene.remove(axesHelper);
-  })
   gui.add( controller, 'home' ).onChange( function() {
     controller.home();
-  })
+  });
 
   renderer = new THREE.WebGLRenderer();
 
