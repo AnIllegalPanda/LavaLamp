@@ -1,10 +1,11 @@
 // globals
 var scene, camera, renderer, controls, axesHelper;
 var aLight, brLight, trLight;
+var cylinder, Botcylinder, Topcylinder;
 var spheres;
 var hBoxHeight = 3.0;
 var hBoxWidth = 1.0;
-var hBoxDepth = 0.4;
+var hBoxDepth = 1.0;
 var sign = 1;
 var heatStrength = 1.0;
 var numLava = 20;
@@ -19,7 +20,7 @@ function dec2hex(i) {
   else if (i >= 4096 && i <= 65535) { result = "0x00" + i.toString(16); }
   else if (i >= 65535 && i <= 1048575) { result = "0x0" + i.toString(16); }
   else if (i >= 1048575 ) { result = '0x' + i.toString(16); }
-if (result.length == 8){return result;}
+  if (result.length == 8){return result;}
 
 }
 
@@ -139,7 +140,7 @@ window.onload = function init() {
 
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  camera.position.z = 6;
+  camera.position.z = 7;
 
   controls = new THREE.OrbitControls(camera);
   controls.update();
@@ -158,7 +159,29 @@ window.onload = function init() {
   scene.add( trLight );
 
   axesHelper = new THREE.AxesHelper( 3 );
-  scene.add( axesHelper );
+
+  //Make the lamp a box
+  var baseColor = 0x1457;
+  var cylRad = Math.sqrt(2*(hBoxWidth**2)) + 0.6;
+  var geometry = new THREE.CylinderGeometry( cylRad, cylRad, hBoxHeight*2, 8 );
+  var material = new THREE.MeshLambertMaterial( {color: 0xc0c0c0, transparent: true, opacity: 0.4} );
+  cylinder = new THREE.Mesh( geometry, material );
+  cylinder.dynamic = true;
+  scene.add( cylinder );
+
+  var Topgeometry = new THREE.CylinderGeometry( cylRad + 0.1, cylRad + 0.1, 1, 8 );
+  var Topmaterial = new THREE.MeshLambertMaterial( {color: baseColor} );
+  Topcylinder = new THREE.Mesh( Topgeometry, Topmaterial );
+  Topcylinder.dynamic = true;
+  scene.add( Topcylinder );
+  Topcylinder.position.set (0, 3, 0);
+
+  var Botgeometry = new THREE.CylinderGeometry( cylRad + 0.1, cylRad + 0.1, 1, 8 );
+  var Botmaterial = new THREE.MeshLambertMaterial( {color: baseColor} );
+  Botcylinder = new THREE.Mesh( Botgeometry, Botmaterial );
+  Botcylinder.dynamic = true;
+  scene.add( Botcylinder );
+  Botcylinder.position.set (0, -3, 0);
 
   // default lava color
   color = 0xff7d05;
@@ -167,32 +190,70 @@ window.onload = function init() {
   var controller = new function() {
     this.width = hBoxWidth;
     this.height = hBoxHeight;
-    this.depth = hBoxDepth;
     this.home = function() {
       controls.reset();
     };
-    this.axes = true;
+    this.axes = false;
     this.lavaColor = color;
     this.heatStrength = 1.0;
     this.numLava = numLava;
   }();
 
   var gui = new dat.GUI();
-  var f1 = gui.addFolder('Scale');
-  f1.add(controller, 'width', 1, 5).onChange( function() {
+  gui.add(controller, 'width', 1, 2).onChange( function() {
     hBoxWidth = (controller.width);
+    hBoxDepth = (controller.width);
+    scene.remove(cylinder);
+    scene.remove(Topcylinder);
+    scene.remove(Botcylinder);
+
+    var cylRad = Math.sqrt(2*(hBoxWidth**2)) + 0.6;
+
+    var Endgeometry = new THREE.CylinderGeometry( cylRad + 0.1, cylRad + 0.1, 1, 8 );
+    var Endmaterial = new THREE.MeshLambertMaterial( {color: baseColor} );
+    Topcylinder = new THREE.Mesh(Endgeometry, Endmaterial);
+    Botcylinder = new THREE.Mesh(Endgeometry, Endmaterial);
+
+    var geometry = new THREE.CylinderGeometry( cylRad, cylRad, hBoxHeight*2, 8 );
+    var material = new THREE.MeshLambertMaterial( {color: 0xc0c0c0, transparent: true, opacity: 0.4} );
+    cylinder = new THREE.Mesh( geometry, material );
+
+    scene.add(Topcylinder);
+    scene.add(Botcylinder);
+    scene.add(cylinder);
+
+    Topcylinder.position.set (0, hBoxHeight, 0);
+    Botcylinder.position.set (0, -hBoxHeight, 0);
   });
-  f1.add(controller, 'height', 3, 6).onChange( function() {
+  gui.add(controller, 'height', 3, 6).onChange( function() {
     hBoxHeight = (controller.height);
-  });
-  f1.add(controller, 'depth', 0.4, 3).onChange( function() {
-    hBoxDepth = (controller.depth);
+    scene.remove(cylinder);
+    scene.remove(Topcylinder);
+    scene.remove(Botcylinder);
+
+    var cylRad = Math.sqrt(2*(hBoxWidth**2)) + 0.6;
+
+    var Endgeometry = new THREE.CylinderGeometry( cylRad + 0.1, cylRad + 0.1, 1, 8 );
+    var Endmaterial = new THREE.MeshLambertMaterial( {color: baseColor} );
+    Topcylinder = new THREE.Mesh(Endgeometry, Endmaterial);
+    Botcylinder = new THREE.Mesh(Endgeometry, Endmaterial);
+
+    var geometry = new THREE.CylinderGeometry( cylRad, cylRad, hBoxHeight*2, 8 );
+    var material = new THREE.MeshLambertMaterial( {color: 0xc0c0c0, transparent: true, opacity: 0.4} );
+    cylinder = new THREE.Mesh( geometry, material );
+
+    scene.add(Topcylinder);
+    scene.add(Botcylinder);
+    scene.add(cylinder);
+
+    Topcylinder.position.set (0, hBoxHeight, 0);
+    Botcylinder.position.set (0, -hBoxHeight, 0);
   });
 
   gui.add( controller, 'heatStrength', 0.0, 5.0 ).onChange( function() {
     heatStrength = controller.heatStrength;
   });
-  gui.add( controller, 'numLava', 5, 50 ).onChange( function() {
+  gui.add( controller, 'numLava', 5, 100 ).onChange( function() {
     numLava = (controller.numLava);
     addLava();
   });
@@ -215,23 +276,6 @@ window.onload = function init() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio( window.devicePixelRatio );
   document.body.appendChild(renderer.domElement);
-  
-    //Make the lamp a box
-var geometry = new THREE.CylinderGeometry( 1.75, 1.75, 6, 8 );
-var material = new THREE.MeshBasicMaterial( {color: 0xff0000, transparent: true, opacity: 0.5} );
-var cylinder = new THREE.Mesh( geometry, material );
-scene.add( cylinder );
-var Topgeometry = new THREE.CylinderGeometry( 2, 2, 1, 8 );
-var Topmaterial = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
-var Topcylinder = new THREE.Mesh( Topgeometry, Topmaterial );
-scene.add( Topcylinder );
-Topcylinder.position.set (0, 3, 0);
-var Botgeometry = new THREE.CylinderGeometry( 2, 2, 1, 8 );
-var Botmaterial = new THREE.MeshBasicMaterial( {color: 0x00ff00} );
-var Botcylinder = new THREE.Mesh( Botgeometry, Botmaterial );
-scene.add( Botcylinder );
-Botcylinder.position.set (0, -3, 0);
-
 
   spheres = [];
   addLava();
