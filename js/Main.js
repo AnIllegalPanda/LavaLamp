@@ -1,7 +1,6 @@
 // globals
 var scene, camera, renderer, controls;
 var aLight, brLight, trLight;
-//var pRight, pLeft, pTop, bBottom, pFront, pBack;
 var spheres;
 var hBoxHeight = 3.0;
 var hBoxWidth = 1.0;
@@ -11,6 +10,7 @@ var heatStrength = 1.0;
 var numLava = 20;
 var color;
 
+// convert menu choice into usable color
 function dec2hex(i) {
   var result = "0x000000";
   if (i >= 0 && i <= 15) { result = "0x00000" + i.toString(16); }
@@ -26,6 +26,7 @@ if (result.length == 8){return result;}
 // bounding box collision check
 function checkCollision(cur) {
 
+  // update position on box dimension change
   var prevx = cur.x;
   var prevy = cur.y;
   var prevz = cur.z;
@@ -37,6 +38,7 @@ function checkCollision(cur) {
   if( cur.z < -hBoxDepth ) cur.z = -hBoxDepth + cur.size;
   cur.geo.translate(cur.x - prevx, cur.y - prevy, cur.z - prevz);
 
+  // collisions with box edges during normal motion
   if( cur.x + cur.size > hBoxWidth ||
       cur.x - cur.size < -hBoxWidth )
       cur.vx *= -1;
@@ -50,19 +52,9 @@ function checkCollision(cur) {
       cur.vz *= -1;
 }
 
-function computeColor(cur, fh) {
-  var minimum = -1;
-  var maximum = 1;
-  var value = fh * 400000; // scale force back up
-  var ratio = 2 * (value-minimum) / (maximum - minimum);
-  var b = Math.max(0, 255*(1 - ratio)) / 255;
-  var r = Math.max(0, 255*(ratio - 1)) / 255;
-  var g = (255 - b - r) / 255;
-  cur.sph.material.color.setRGB(r, g, b);
-}
-
-// apply forces only in y direction
+// apply necessary forces to each object
 function applyForces(cur) {
+  // constant gravity
   var Fg = -0.0000005;
   // cur.y < 0 -> apply positive force
   // cur.y > 0 -> apply negative force
@@ -70,6 +62,7 @@ function applyForces(cur) {
   var FhScalar = 400000;
   var Fh = ((-cur.y)**3) / ((cur.size*2) * FhScalar) * heatStrength;
 
+  // make objects tend towards y axis
   var Fcx = ((-cur.x)**3) / FhScalar;
   var Fcz = ((-cur.z)**3) / FhScalar;
 
@@ -79,6 +72,7 @@ function applyForces(cur) {
   cur.vz += Fcz;
 }
 
+// add new objects to the scene, remove if necessary
 function addLava() {
 
   if( numLava < spheres.length ) {
@@ -88,6 +82,7 @@ function addLava() {
     }
   }
 
+  // init spheres
   for (var i = spheres.length; i < numLava; ++i) {
     var x = Math.random() * hBoxWidth*2 - hBoxWidth;
     var y = -hBoxHeight + (Math.random() / 4);
@@ -97,11 +92,11 @@ function addLava() {
     var vz = Math.random() / 200 - 0.0025;
     var size = (Math.random() * 0.2) + 0.4;
 
+    // make sure spheres are starting in the correct position
     if( y - size <= -hBoxHeight )
       y = -hBoxHeight + size + 0.1;
 
     var geometry = new THREE.SphereGeometry(size, 32, 32);
-
     var material = new THREE.MeshLambertMaterial({morphTargets: true, color: color});
     var sphere = new THREE.Mesh(geometry, material);
 
@@ -165,8 +160,10 @@ window.onload = function init() {
   var axesHelper = new THREE.AxesHelper( 3 );
   scene.add( axesHelper );
 
+  // default lava color
   color = 0xff7d05;
 
+  // gui options
   var controller = new function() {
     this.width = hBoxWidth;
     this.height = hBoxHeight;
@@ -208,15 +205,7 @@ window.onload = function init() {
     controller.home();
   })
 
-  /*
-  var boxEdgeGeo = new THREE.BoxGeometry(hBoxWidth*2+0.5, hBoxHeight*2+0.5, hBoxDepth*2+0.5);
-  var boxEdgeMaterial = new THREE.MeshBasicMaterial( {color: 0xD2B48C, wireframe: true} );
-  var boxEdge = new THREE.Mesh( boxEdgeGeo, boxEdgeMaterial );
-  scene.add( boxEdge );
-  */
-
   renderer = new THREE.WebGLRenderer();
-
 
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio( window.devicePixelRatio );
