@@ -102,7 +102,7 @@ function addLava() {
 
     var geometry = new THREE.SphereGeometry(size, 32, 32);
 
-    var material = new THREE.MeshLambertMaterial({morphTargets: true, color: 0xff7d05});
+    var material = new THREE.MeshLambertMaterial({morphTargets: true, color: color});
     var sphere = new THREE.Mesh(geometry, material);
 
     spheres.push({
@@ -201,6 +201,8 @@ window.onload = function init() {
   gui.addColor( controller, 'lavaColor', color ).onChange( function() {
     for( var i = 0; i < spheres.length; ++i )
       spheres[i].sph.material.color.setHex(dec2hex(controller.lavaColor));
+
+    color = controller.lavaColor;
   });
   gui.add( controller, 'home' ).onChange( function() {
     controller.home();
