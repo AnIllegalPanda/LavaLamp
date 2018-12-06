@@ -1,5 +1,5 @@
 // globals
-var scene, camera, renderer;
+var scene, camera, renderer, controls;
 var aLight, brLight, trLight;
 //var pRight, pLeft, pTop, bBottom, pFront, pBack;
 var spheres;
@@ -7,9 +7,35 @@ var hBoxHeight = 3.0;
 var hBoxWidth = 1.0;
 var hBoxDepth = 0.4;
 var sign = 1;
+var heatStrength = 1.0;
+var numLava = 20;
+var color;
+
+function dec2hex(i) {
+  var result = "0x000000";
+  if (i >= 0 && i <= 15) { result = "0x00000" + i.toString(16); }
+  else if (i >= 16 && i <= 255) { result = "0x0000" + i.toString(16); }
+  else if (i >= 256 && i <= 4095) { result = "0x000" + i.toString(16); }
+  else if (i >= 4096 && i <= 65535) { result = "0x00" + i.toString(16); }
+  else if (i >= 65535 && i <= 1048575) { result = "0x0" + i.toString(16); }
+  else if (i >= 1048575 ) { result = '0x' + i.toString(16); }
+if (result.length == 8){return result;}
+
+}
 
 // bounding box collision check
 function checkCollision(cur) {
+
+  var prevx = cur.x;
+  var prevy = cur.y;
+  var prevz = cur.z;
+  if( cur.x > hBoxWidth ) cur.x = hBoxWidth - cur.size;
+  if( cur.x < -hBoxWidth ) cur.x = -hBoxWidth + cur.size;
+  if( cur.y > hBoxHeight ) cur.y = hBoxHeight - cur.size;
+  if( cur.y < -hBoxHeight ) cur.y = -hBoxHeight + cur.size;
+  if( cur.z > hBoxDepth ) cur.z = hBoxDepth - cur.size;
+  if( cur.z < -hBoxDepth ) cur.z = -hBoxDepth + cur.size;
+  cur.geo.translate(cur.x - prevx, cur.y - prevy, cur.z - prevz);
 
   if( cur.x + cur.size > hBoxWidth ||
       cur.x - cur.size < -hBoxWidth )
@@ -41,8 +67,8 @@ function applyForces(cur) {
   // cur.y < 0 -> apply positive force
   // cur.y > 0 -> apply negative force
   // cur.y == 0 -> apply 0 force
-  var FhScalar = 800000;
-  var Fh = ((-cur.y)**3) / ((cur.size*2) * FhScalar);
+  var FhScalar = 400000;
+  var Fh = ((-cur.y)**3) / ((cur.size*2) * FhScalar) * heatStrength;
 
   var Fcx = ((-cur.x)**3) / FhScalar;
   var Fcz = ((-cur.z)**3) / FhScalar;
@@ -53,29 +79,47 @@ function applyForces(cur) {
   cur.vz += Fcz;
 }
 
-function computeMorphTargets(geometry) {
-  for( var i = 0; i < geometry.vertices.length; ++i ) {
-    var vertices = [];
+function addLava() {
 
-    for( var j = 0; j < geometry.vertices.length; ++j ) {
-      var v = geometry.vertices[j].clone();
-      v.x *= 1.1;
-      v.y *= 1.1; 
-      v.z *= 1.1;
-      vertices.push(v);
-
-      /*
-      if( j === i ) {
-        vertices[ vertices.length -  1].x *= 2;
-        vertices[ vertices.length -  1].y *= 2;
-        vertices[ vertices.length -  1].z *= 2;
-      }
-      */
+  if( numLava < spheres.length ) {
+    var removed = spheres.splice(numLava, spheres.length - numLava);
+    for( var i = 0; i < removed.length; ++i ) {
+      scene.remove(removed[i].sph);
     }
-
-    geometry.morphTargets.push({ name: "target"+i, vertices: vertices});
   }
 
+  for (var i = spheres.length; i < numLava; ++i) {
+    var x = Math.random() * hBoxWidth*2 - hBoxWidth;
+    var y = -hBoxHeight + (Math.random() / 4);
+    var z = Math.random() * hBoxDepth*2 - hBoxDepth;
+    var vx = Math.random() / 200 - 0.0025;
+    var vy = 0;
+    var vz = Math.random() / 200 - 0.0025;
+    var size = (Math.random() * 0.2) + 0.4;
+
+    if( y - size <= -hBoxHeight )
+      y = -hBoxHeight + size + 0.1;
+
+    var geometry = new THREE.SphereGeometry(size, 32, 32);
+
+    var material = new THREE.MeshLambertMaterial({morphTargets: true, color: 0xff7d05});
+    var sphere = new THREE.Mesh(geometry, material);
+
+    spheres.push({
+      x: x,
+      y: y,
+      z: z,
+      vx: vx,
+      vy: vy,
+      vz: vz,
+      size: size,
+      geo: geometry,
+      sph: sphere,
+    });
+
+    scene.add(sphere);
+    sphere.position.set(x, y, z);
+  }
 }
 
 var animate = function () {
@@ -91,19 +135,8 @@ var animate = function () {
 
     checkCollision(cur);
     applyForces(cur);
-    //computeColor(cur, Fh);
-
-    //cur.sph.rotation.y += 0.01;
-
-    /*
-    for( var j = 0; j < cur.sph.morphTargetInfluences.length; ++j ) {
-      cur.sph.morphTargetInfluences[ j ] = cur.sph.morphTargetInfluences[ j ] + 0.001 * sign;
-      if ( cur.sph.morphTargetInfluences[ j ] <= 0 || cur.sph.morphTargetInfluences[ j ] >= 0.05 ) {
-        sign *= - 1;
-      }
-    }
-    */
   }
+  controls.update();
   renderer.render(scene, camera);
 };
 
@@ -113,36 +146,71 @@ window.onload = function init() {
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.z = 6;
 
+  controls = new THREE.OrbitControls(camera);
+  controls.update();
+
   aLight = new THREE.AmbientLight( 0x1f1f1f, 5 );
   scene.add( aLight );
 
   brLight = new THREE.PointLight( 0xf0f0f0, 1 );
   brLight.position.set( 0, 0, 5 );
   brLight.castShadow = true;
-  //brLight.lookAt(0, 0, 0);
   scene.add( brLight );
 
   trLight = new THREE.PointLight( 0xf0f0f0, 1);
   trLight.position.set( 0, 20, 0 );
   trLight.castShadow = true;
-  //trLight.lookAt(0, 0, 0);
   scene.add( trLight );
 
-  var boxEdgeGeo = new THREE.BoxGeometry(hBoxWidth*2, hBoxHeight*2, hBoxDepth*2);
+  var axesHelper = new THREE.AxesHelper( 3 );
+  scene.add( axesHelper );
+
+  color = 0xff7d05;
+
+  var controller = new function() {
+    this.width = hBoxWidth;
+    this.height = hBoxHeight;
+    this.depth = hBoxDepth;
+    this.home = function() {
+      controls.reset();
+    };
+    this.lavaColor = color;
+    this.heatStrength = 1.0;
+    this.numLava = numLava;
+  }();
+
+  var gui = new dat.GUI();
+  var f1 = gui.addFolder('Scale');
+  f1.add(controller, 'width', 1, 5).onChange( function() {
+    hBoxWidth = (controller.width);
+  });
+  f1.add(controller, 'height', 3, 6).onChange( function() {
+    hBoxHeight = (controller.height);
+  });
+  f1.add(controller, 'depth', 0.4, 3).onChange( function() {
+    hBoxDepth = (controller.depth);
+  });
+
+  gui.add( controller, 'heatStrength', 0.0, 5.0 ).onChange( function() {
+    heatStrength = controller.heatStrength;
+  });
+  gui.add( controller, 'numLava', 5, 50 ).onChange( function() {
+    numLava = (controller.numLava);
+    addLava();
+  });
+  gui.addColor( controller, 'lavaColor', color ).onChange( function() {
+    for( var i = 0; i < spheres.length; ++i )
+      spheres[i].sph.material.color.setHex(dec2hex(controller.lavaColor));
+  });
+  gui.add( controller, 'home' ).onChange( function() {
+    controller.home();
+  })
+
+  /*
+  var boxEdgeGeo = new THREE.BoxGeometry(hBoxWidth*2+0.5, hBoxHeight*2+0.5, hBoxDepth*2+0.5);
   var boxEdgeMaterial = new THREE.MeshBasicMaterial( {color: 0xD2B48C, wireframe: true} );
   var boxEdge = new THREE.Mesh( boxEdgeGeo, boxEdgeMaterial );
   scene.add( boxEdge );
-
-  /*
-  var axesHelper = new THREE.AxesHelper(3);
-  scene.add(axesHelper);
-  */
-
-  /*
-  var boxGeo = new THREE.BoxGeometry(4.9, 5.9, 0);
-  var boxMaterial = new THREE.MeshBasicMaterial( {color: 0x000000} );
-  var box = new THREE.Mesh( boxGeo , boxMaterial );
-  scene.add( box );
   */
 
   renderer = new THREE.WebGLRenderer();
@@ -153,63 +221,7 @@ window.onload = function init() {
   document.body.appendChild(renderer.domElement);
 
   spheres = [];
-
-  for (var i = 0; i < 10; ++i) {
-    var x = Math.random() * hBoxWidth*2 - hBoxWidth;
-    var y = -hBoxHeight + (Math.random() / 4);
-    var z = Math.random() * hBoxDepth*2 - hBoxDepth;
-    //var z = 0.5;
-    var vx = Math.random() / 200 - 0.0025;
-    //var vy = Math.random() / 100 - 0.01;
-    var vy = 0;
-    var vz = Math.random() / 200 - 0.0025;
-    //var vz = 0;
-    var size = (Math.random() * 0.2) + 0.4;
-
-    if( y - size <= -hBoxHeight )
-      y = -hBoxHeight + size + 0.1;
-
-    var geometry = new THREE.SphereGeometry(size, 16, 16);
-    //computeMorphTargets(geometry);
-
-    var material = new THREE.MeshLambertMaterial({morphTargets: true, color: 0xff7d05});
-    var sphere = new THREE.Mesh(geometry, material);
-
-    //sphere.morphTargetInfluences[1] = 0;
-
-    var pointsMaterial = new THREE.PointsMaterial( {
-
-      size: 2,
-      sizeAttenuation: false,
-      alphaTest: 0.5,
-      morphTargets: true
-
-    } );
-
-    var points = new THREE.Points( sphere.geometry, pointsMaterial );
-
-    points.morphTargetInfluences = sphere.morphTargetInfluences;
-    points.morphTargetDictionary = sphere.morphTargetDictionary;
-
-    //sphere.add( points );
-
-    spheres.push({
-      x: x,
-      y: y,
-      z: z,
-      vx: vx,
-      vy: vy,
-      vz: vz,
-      size: size,
-      geo: geometry,
-      sph: sphere
-    });
-
-    scene.add(sphere);
-    sphere.position.set(x, y, z);
-
-  }
-
+  addLava();
   animate();
 }
 
