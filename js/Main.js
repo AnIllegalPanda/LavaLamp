@@ -1,5 +1,5 @@
 // globals
-var scene, camera, renderer, controls;
+var scene, camera, renderer, controls, axesHelper;
 var aLight, brLight, trLight;
 var spheres;
 var hBoxHeight = 3.0;
@@ -157,7 +157,7 @@ window.onload = function init() {
   trLight.castShadow = true;
   scene.add( trLight );
 
-  var axesHelper = new THREE.AxesHelper( 3 );
+  axesHelper = new THREE.AxesHelper( 3 );
   scene.add( axesHelper );
 
   // default lava color
@@ -171,6 +171,7 @@ window.onload = function init() {
     this.home = function() {
       controls.reset();
     };
+    this.axes = true;
     this.lavaColor = color;
     this.heatStrength = 1.0;
     this.numLava = numLava;
@@ -201,6 +202,10 @@ window.onload = function init() {
 
     color = controller.lavaColor;
   });
+  gui.add( controller, 'axes' ).onChange( function() {
+    if( controller.axes ) scene.add(axesHelper);
+    else scene.remove(axesHelper);
+  })
   gui.add( controller, 'home' ).onChange( function() {
     controller.home();
   })
